@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatroom</title>
+  <style>
+    body {
+      background-color: #2c2f38;
+      color: #eaeaea;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .chat-container {
+      width: 80%;
+      max-width: 600px;
+      height: 80%;
+      background-color: #3a3f47;
+      border-radius: 10px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      display: none;
+      /* Initially hidden */
+      border: 3px solid black;
+      /* Black outline added */
+    }
+
+    .messages {
+      flex-grow: 1;
+      overflow-y: scroll;
+      margin-bottom: 20px;
+    }
+
+    .message {
+      background-color: #4a535d;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .input-container {
+      display: flex;
+    }
+
+    input[type="text"] {
+      flex-grow: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      margin-right: 10px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #5c6f76;
+      color: #eaeaea;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background-color: #48585f;
+    }
+
+    /* Settings Menu Styles */
+    .settings-menu {
+      position: absolute;
+      top: 20px;
+      left: -150px;
+      background-color: #3a3f47;
+      border-radius: 10px;
+      padding: 10px;
+      width: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+      transition: all 0.3s ease;
+    }
+
+    .settings-button {
+      position: fixed;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background-color: #5c6f76;
+      color: #eaeaea;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .settings-button:hover {
+      background-color: #48585f;
+    }
+
+    .settings-menu.open {
+      left: 0;
+    }
+
+    .settings-menu button {
+      margin: 10px 0;
+    }
+
+    /* Warning Modal Styles */
+    .warning-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .warning-content {
+      background-color: #3a3f47;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      color: #eaeaea;
+      width: 80%;
+      max-width: 400px;
+    }
+
+    .warning-content button {
+      background-color: #5c6f76;
+      color: #eaeaea;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    .warning-content button:hover {
+      background-color: #48585f;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Warning Modal -->
+  <div id="warningModal" class="warning-modal">
+    <div class="warning-content">
+      <h2>Warning</h2>
+      <p>This chatroom does not have a filter on what can or cannot be said. Please be mindful of the language used.</p>
+      <button onclick="enterChat()">I Agree, Enter Chat</button>
+    </div>
+  </div>
+
+  <div class="chat-container" id="chatContainer">
+    <div class="messages" id="messageBox"></div>
+    <div class="input-container">
+      <input type="text" id="messageInput" placeholder="Type a message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <!-- Settings Menu -->
+  <div class="settings-menu" id="settingsMenu">
+    <button onclick="toggleAutoScroll()">Pause Auto-Scroll</button>
+    <button onclick="clearChat()">Clear Chat</button>
+  </div>
+
+  <!-- Settings Button -->
+  <button class="settings-button" onclick="toggleSettingsMenu()">Settings</button>
+
+  <script>
+    const messageBox = document.getElementById('messageBox');
+    const messageInput = document.getElementById('messageInput');
+    const settingsMenu = document.getElementById('settingsMenu');
+    const settingsButton = document.querySelector('.settings-button');
+    const warningModal = document.getElementById('warningModal');
+    const chatContainer = document.getElementById('chatContainer');
+    let autoScrollEnabled = true; // Auto-scroll is enabled by default
+    // Function to get current time and date
+    function getCurrentTime() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const date = now.toLocaleDateString();
+      return `${hours}:${minutes}:${seconds} ${date}`;
+    }
+    // Function to send a message
+    function sendMessage() {
+      let messageText = messageInput.value.trim();
+      if (messageText !== '') {
+        const timeStamp = getCurrentTime();
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        messageElement.innerHTML = `<span class="timestamp">${timeStamp}</span><br>${messageText}`;
+        messageBox.appendChild(messageElement);
+        messageInput.value = ''; // Clear the input field
+        // Save the messages in localStorage (simulated persistence)
+        saveMessages();
+        // Auto-scroll to the bottom after a new message is added if auto-scroll is enabled
+        if (autoScrollEnabled) {
+          scrollToBottom();
+        }
+      }
+    }
+    // Function to save messages in localStorage
+    function saveMessages() {
+      const messages = messageBox.innerHTML;
+      localStorage.setItem('chatMessages', messages);
+    }
+    // Function to load saved messages from localStorage
+    function loadMessages() {
+      const savedMessages = localStorage.getItem('chatMessages');
+      if (savedMessages) {
+        messageBox.innerHTML = savedMessages;
+      }
+    }
+    // Function to scroll to the bottom of the message box
+    function scrollToBottom() {
+      messageBox.scrollTop = messageBox.scrollHeight;
+    }
+    // Load saved messages when the page is loaded
+    window.onload = loadMessages;
+    // Add event listener for "Enter" key to send messages
+    messageInput.addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault(); // Prevent the default action (like creating a new line)
+        sendMessage(); // Send the message
+      }
+    });
+    // Toggle the auto-scroll feature on and off
+    function toggleAutoScroll() {
+      autoScrollEnabled = !autoScrollEnabled;
+      const buttonText = autoScrollEnabled ? "Pause Auto-Scroll" : "Resume Auto-Scroll";
+      settingsMenu.querySelector('button').textContent = buttonText;
+    }
+    // Toggle the visibility of the settings menu
+    function toggleSettingsMenu() {
+      settingsMenu.classList.toggle('open');
+    }
+    // Function to clear all messages in the chat box
+    function clearChat() {
+      messageBox.innerHTML = ''; // Clears all the messages in the chat box
+      localStorage.removeItem('chatMessages'); // Clears saved chat history from localStorage
+    }
+    // Function to handle entering the chat after agreeing to the warning
+    function enterChat() {
+      warningModal.style.display = 'none';
+      chatContainer.style.display = 'flex';
+    }
+  </script>
+
+</body>
+
+</html>
